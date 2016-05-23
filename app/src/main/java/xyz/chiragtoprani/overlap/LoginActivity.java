@@ -46,6 +46,7 @@ public class LoginActivity extends Activity {
         register.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Log.v("TAG", "making user");
                 emailtxt = email.getText().toString();
                 passwordtxt = password.getText().toString();
                 params = new ArrayList<NameValuePair>();

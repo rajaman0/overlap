@@ -28,13 +28,20 @@
         android:id="@+id/logout"
         android:textAlignment="center"
         android:text="Logout"/>
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="10px"
+    <ScrollView
+        android:layout_marginTop="5dp"
+        android:id="@+id/SCROLLER_ID"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/display"
-        android:textAlignment="center"
-        android:text="Display"/>
+        android:scrollbars="vertical">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_marginTop="10px"
+            android:layout_height="wrap_content"
+            android:id="@+id/display"
+            android:textAlignment="center"
+        />
+    </ScrollView>
+
 
 </LinearLayout>

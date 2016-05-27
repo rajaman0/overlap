@@ -7,9 +7,12 @@ package xyz.chiragtoprani.overlap;
     import android.content.Intent;
     import android.content.SharedPreferences;
     import android.content.pm.PackageManager;
+    import android.database.Cursor;
+    import android.net.Uri;
     import android.os.Bundle;
     import android.support.v4.app.ActivityCompat;
     import android.support.v4.content.ContextCompat;
+    import android.util.Log;
     import android.view.View;
     import android.webkit.WebView;
     import android.widget.Button;
@@ -22,11 +25,14 @@ package xyz.chiragtoprani.overlap;
     import org.json.JSONException;
     import org.json.JSONObject;
 
+    import java.text.SimpleDateFormat;
     import java.util.ArrayList;
+    import java.util.Arrays;
+    import java.util.Calendar;
     import java.util.List;
 
-    import me.everything.providers.android.calendar.Calendar;
     import me.everything.providers.android.calendar.CalendarProvider;
+    import me.everything.providers.android.calendar.Event;
 
 
 public class ProfileActivity extends Activity {
@@ -87,10 +93,77 @@ public class ProfileActivity extends Activity {
     }
 
     public void requestCalendarInformation(){
-        CalendarProvider provider = new CalendarProvider(getApplicationContext());
-        List<Calendar> calendars = provider.getCalendars().getList();
-        display.setText("size: " + calendars.size() + " ... " + calendars.toString());
+//        CalendarProvider provider = new CalendarProvider(getApplicationContext());
+//        List<Calendar> calendars = provider.getCalendars().getList();
+//
+//
+//
+//        //gets list of events:
+//        for (int i = 0; i < calendars.size(); i ++ ) {
+//            provider.getEvents(calendars.get(0).id);
+//        }
+
+//        Cursor cursor = getContentResolver().query(Uri.parse("content://calendar/calendars"), new String[]{ "_id",  "displayname" }, null, null, null);
+//        cursor.moveToFirst();
+//        String[] CalNames = new String[cursor.getCount()];
+//
+//        int[] CalIds = new int[cursor.getCount()];
+//        for (int i = 0; i < CalNames.length; i++) {
+//            CalIds[i] = cursor.getInt(0);
+//            CalNames[i] = cursor.getString(1);
+//            cursor.moveToNext();
+//        }
+//        cursor.close();
+
+        ArrayList<String> nameOfEvent = new ArrayList<String>();
+        ArrayList<String> startDates = new ArrayList<String>();
+        ArrayList<String> endDates = new ArrayList<String>();
+        ArrayList<String> descriptions = new ArrayList<String>();
+
+        Cursor cursor = getApplicationContext().getContentResolver()
+                .query(
+                        Uri.parse("content://com.android.calendar/events"),
+                        new String[] { "calendar_id", "title", "description",
+                                "dtstart", "dtend", "eventLocation" }, null,
+                        null, null);
+        cursor.moveToFirst();
+        // fetching calendars name
+        String CNames[] = new String[cursor.getCount()];
+
+        // fetching calendars id
+        nameOfEvent.clear();
+        startDates.clear();
+        endDates.clear();
+        descriptions.clear();
+        for (int i = 0; i < CNames.length; i++) {
+
+            nameOfEvent.add(cursor.getString(1));
+            Log.v("NAME", "restart activity");
+            if (cursor.getString(4) == null)
+                Log.v("NAME", cursor.getString(1));
+            else
+                startDates.add(getDate(Long.parseLong(cursor.getString(4))));
+
+//            endDates.add(getDate(Long.parseLong(cursor.getString(4).trim())));
+//            Log.v("NAME", cursor.getString(1));
+//            Log.v("NAME", "test " + Long.parseLong(cursor.getString(3)));
+            descriptions.add(cursor.getString(2));
+            CNames[i] = cursor.getString(1);
+            cursor.moveToNext();
+
+        }
+        display.setText(Arrays.toString(CNames));
+//        display.setText(":size: " + calendars.size() + " ... " + calendars.toString());
     }
+
+
+        public static String getDate(long milliSeconds) {
+            SimpleDateFormat formatter = new SimpleDateFormat(
+                    "dd/MM/yyyy hh:mm:ss a");
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(milliSeconds);
+            return formatter.format(calendar.getTime());
+        }
 }
 
 

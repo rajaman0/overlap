@@ -8,6 +8,8 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -15,7 +17,11 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -35,17 +41,34 @@ public class ServerRequest {
 
     public JSONObject getJSONFromUrl(String url, List<NameValuePair> params) {
 
+        Log.v("IO", "Trying to get JSON");
+
 
         try {
 
-            DefaultHttpClient httpClient = new DefaultHttpClient();
             HttpPost httpPost = new HttpPost(url);
             httpPost.setEntity(new UrlEncodedFormEntity(params));
 
+            Log.e("IO", "about to get the information");
+
+            HttpParams httpParameters = new BasicHttpParams();
+            int timeoutConnection = 3000;
+            HttpConnectionParams.setConnectionTimeout(httpParameters, timeoutConnection);
+
+            DefaultHttpClient httpClient = new DefaultHttpClient(httpParameters);
+
             HttpResponse httpResponse = httpClient.execute(httpPost);
+            Log.e("IO", "Finished");
+
             HttpEntity httpEntity = httpResponse.getEntity();
+
             is = httpEntity.getContent();
 
+
+        }catch (ConnectTimeoutException e){
+
+            Log.e("IO", "Connection timed out");
+            return null;
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         } catch (ClientProtocolException e) {
@@ -85,12 +108,19 @@ public class ServerRequest {
 
         Params param = new Params(url,params);
         Request myTask = new Request();
+        Log.v("IO", "Sending Request");
         try{
-            jobj= myTask.execute(param).get();
+            jobj= myTask.execute(param).get(500, TimeUnit.MILLISECONDS);
         }catch (InterruptedException e) {
+            Log.e("IO", "IO Exception");
+
             e.printStackTrace();
         }catch (ExecutionException e){
+            Log.e("IO", "IO Exception");
+
             e.printStackTrace();
+        } catch (TimeoutException e){
+            return null;
         }
         return jobj;
     }

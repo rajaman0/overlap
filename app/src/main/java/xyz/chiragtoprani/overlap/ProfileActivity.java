@@ -30,16 +30,14 @@ package xyz.chiragtoprani.overlap;
     import java.util.Arrays;
     import java.util.Calendar;
     import java.util.List;
-
-    import me.everything.providers.android.calendar.CalendarProvider;
-    import me.everything.providers.android.calendar.Event;
+    import java.util.concurrent.TimeUnit;
 
 
 public class ProfileActivity extends Activity {
 
 
     SharedPreferences pref;
-    String token, grav, oldpasstxt, newpasstxt;
+    String token, oldpasstxt, newpasstxt;
     WebView web;
     Button chgpass, chgpassfr, cancel, logout;
     Dialog dlg;
@@ -54,6 +52,76 @@ public class ProfileActivity extends Activity {
         setContentView(R.layout.activity_profile);
 
         display = (TextView) findViewById(R.id.display);
+        chgpass = (Button)findViewById(R.id.chgbtn);
+        logout = (Button)findViewById(R.id.logout);
+        logout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                SharedPreferences.Editor edit = pref.edit();
+                //Storing Data using SharedPreferences
+                edit.putString("token", "");
+                edit.commit();
+                Intent loginactivity = new Intent(ProfileActivity.this,LoginActivity.class);
+
+                startActivity(loginactivity);
+                finish();
+            }
+        });
+
+        pref = getSharedPreferences("AppPref", MODE_PRIVATE);
+        token = pref.getString("token", "");
+
+
+        chgpass.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dlg = new Dialog(ProfileActivity.this);
+                dlg.setContentView(R.layout.chgpassword_frag);
+                dlg.setTitle("Change Password");
+                chgpassfr = (Button)dlg.findViewById(R.id.chgbtn);
+
+                chgpassfr.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        oldpass = (EditText)dlg.findViewById(R.id.oldpass);
+                        newpass = (EditText)dlg.findViewById(R.id.newpass);
+                        oldpasstxt = oldpass.getText().toString();
+                        newpasstxt = newpass.getText().toString();
+                        params = new ArrayList<NameValuePair>();
+                        params.add(new BasicNameValuePair("oldpass", oldpasstxt));
+                        params.add(new BasicNameValuePair("newpass", newpasstxt));
+                        params.add(new BasicNameValuePair("id", token));
+                        ServerRequest sr = new ServerRequest();
+                        //    JSONObject json = sr.getJSON("http://192.168.56.1:8080/api/chgpass",params);
+                        JSONObject json = sr.getJSON("http://10.0.2.2:8080/api/chgpass",params);
+                        if(json != null){
+                            try{
+                                String jsonstr = json.getString("response");
+                                if(json.getBoolean("res")){
+
+                                    dlg.dismiss();
+                                    Toast.makeText(getApplication(),jsonstr,Toast.LENGTH_SHORT).show();
+                                }else {
+                                    Toast.makeText(getApplication(),jsonstr,Toast.LENGTH_SHORT).show();
+
+                                }
+                            }catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                    }
+                });
+                cancel = (Button)dlg.findViewById(R.id.cancelbtn);
+                cancel.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        dlg.dismiss();
+                    }
+                });
+                dlg.show();
+            }
+        });
 
         int permissionCheck = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.WRITE_CALENDAR);
@@ -61,7 +129,6 @@ public class ProfileActivity extends Activity {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.WRITE_CALENDAR},
                     REQUEST_CALENDAR);
-
         } else {
             requestCalendarInformation();
         }
@@ -93,156 +160,50 @@ public class ProfileActivity extends Activity {
     }
 
     public void requestCalendarInformation(){
-//        CalendarProvider provider = new CalendarProvider(getApplicationContext());
-//        List<Calendar> calendars = provider.getCalendars().getList();
-//
-//
-//
-//        //gets list of events:
-//        for (int i = 0; i < calendars.size(); i ++ ) {
-//            provider.getEvents(calendars.get(0).id);
-//        }
 
-//        Cursor cursor = getContentResolver().query(Uri.parse("content://calendar/calendars"), new String[]{ "_id",  "displayname" }, null, null, null);
-//        cursor.moveToFirst();
-//        String[] CalNames = new String[cursor.getCount()];
-//
-//        int[] CalIds = new int[cursor.getCount()];
-//        for (int i = 0; i < CalNames.length; i++) {
-//            CalIds[i] = cursor.getInt(0);
-//            CalNames[i] = cursor.getString(1);
-//            cursor.moveToNext();
-//        }
-//        cursor.close();
+        ArrayList<Event> events = new ArrayList<Event>();
 
-        ArrayList<String> nameOfEvent = new ArrayList<String>();
-        ArrayList<String> startDates = new ArrayList<String>();
-        ArrayList<String> endDates = new ArrayList<String>();
-        ArrayList<String> descriptions = new ArrayList<String>();
+        long startTimeQueried = System.currentTimeMillis();
+        long totalTimeQueried = TimeUnit.DAYS.toMillis(7);     // 7 days to milliseconds.
+
+        Log.v("NAME", "time = " + getDate(startTimeQueried));
 
         Cursor cursor = getApplicationContext().getContentResolver()
                 .query(
-                        Uri.parse("content://com.android.calendar/events"),
-                        new String[] { "calendar_id", "title", "description",
-                                "dtstart", "dtend", "eventLocation" }, null,
+                        Uri.parse("content://com.android.calendar/instances/when/"+startTimeQueried+'/' + (startTimeQueried + totalTimeQueried)),
+                        new String[] {"title", "description",
+                                "begin", "end", "eventLocation" }, null,
                         null, null);
         cursor.moveToFirst();
-        // fetching calendars name
-        String CNames[] = new String[cursor.getCount()];
 
-        // fetching calendars id
-        nameOfEvent.clear();
-        startDates.clear();
-        endDates.clear();
-        descriptions.clear();
-        for (int i = 0; i < CNames.length; i++) {
 
-            nameOfEvent.add(cursor.getString(1));
-            Log.v("NAME", "restart activity");
-            if (cursor.getString(4) == null)
-                Log.v("NAME", cursor.getString(1));
-            else
-                startDates.add(getDate(Long.parseLong(cursor.getString(4))));
+        Event ev;
+        for (int i = 0; i < cursor.getCount(); i++) {
+            ev = new Event();
+            ev.title = cursor.getString(0);
+            ev.description = cursor.getString(1);
+            ev.start = Long.parseLong(cursor.getString(2));
+            ev.end = Long.parseLong(cursor.getString(3));
+            ev.location = cursor.getString(4);
 
-//            endDates.add(getDate(Long.parseLong(cursor.getString(4).trim())));
-//            Log.v("NAME", cursor.getString(1));
-//            Log.v("NAME", "test " + Long.parseLong(cursor.getString(3)));
-            descriptions.add(cursor.getString(2));
-            CNames[i] = cursor.getString(1);
+            events.add(ev);
             cursor.moveToNext();
-
         }
-        display.setText(Arrays.toString(CNames));
-//        display.setText(":size: " + calendars.size() + " ... " + calendars.toString());
+        display.setText(Arrays.toString(events.toArray()));
     }
 
 
-        public static String getDate(long milliSeconds) {
-            SimpleDateFormat formatter = new SimpleDateFormat(
-                    "dd/MM/yyyy hh:mm:ss a");
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(milliSeconds);
-            return formatter.format(calendar.getTime());
-        }
+    public static String getDate(long milliSeconds) {
+        SimpleDateFormat formatter = new SimpleDateFormat(
+                "dd/MM/yyyy hh:mm:ss a");
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(milliSeconds);
+        return formatter.format(calendar.getTime());
+    }
 }
 
 
-//ALL IN ON CREATE
-//        web = (WebView)findViewById(R.id.webView);
-//        chgpass = (Button)findViewById(R.id.chgbtn);
-//        logout = (Button)findViewById(R.id.logout);
-//        logout.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                SharedPreferences.Editor edit = pref.edit();
-//                //Storing Data using SharedPreferences
-//                edit.putString("token", "");
-//                edit.commit();
-//                Intent loginactivity = new Intent(ProfileActivity.this,LoginActivity.class);
-//
-//                startActivity(loginactivity);
-//                finish();
-//            }
-//        });
 
-//        pref = getSharedPreferences("AppPref", MODE_PRIVATE);
-//        token = pref.getString("token", "");
-//        grav = pref.getString("grav", "");
-
-//        web.getSettings().setUseWideViewPort(true);
-//        web.getSettings().setLoadWithOverviewMode(true);
-//        web.loadUrl(grav);
-//
-//        chgpass.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                dlg = new Dialog(ProfileActivity.this);
-//                dlg.setContentView(R.layout.chgpassword_frag);
-//                dlg.setTitle("Change Password");
-//                chgpassfr = (Button)dlg.findViewById(R.id.chgbtn);
-//
-//                chgpassfr.setOnClickListener(new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View view) {
-//                        oldpass = (EditText)dlg.findViewById(R.id.oldpass);
-//                        newpass = (EditText)dlg.findViewById(R.id.newpass);
-//                        oldpasstxt = oldpass.getText().toString();
-//                        newpasstxt = newpass.getText().toString();
-//                        params = new ArrayList<NameValuePair>();
-//                        params.add(new BasicNameValuePair("oldpass", oldpasstxt));
-//                        params.add(new BasicNameValuePair("newpass", newpasstxt));
-//                        params.add(new BasicNameValuePair("id", token));
-//                        ServerRequest sr = new ServerRequest();
-//                        //    JSONObject json = sr.getJSON("http://192.168.56.1:8080/api/chgpass",params);
-//                        JSONObject json = sr.getJSON("http://10.0.2.2:8080/api/chgpass",params);
-//                        if(json != null){
-//                            try{
-//                                String jsonstr = json.getString("response");
-//                                if(json.getBoolean("res")){
-//
-//                                    dlg.dismiss();
-//                                    Toast.makeText(getApplication(),jsonstr,Toast.LENGTH_SHORT).show();
-//                                }else {
-//                                    Toast.makeText(getApplication(),jsonstr,Toast.LENGTH_SHORT).show();
-//
-//                                }
-//                            }catch (JSONException e) {
-//                                e.printStackTrace();
-//                            }
-//                        }
-//
-//                    }
-//                });
-//                cancel = (Button)dlg.findViewById(R.id.cancelbtn);
-//                cancel.setOnClickListener(new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View view) {
-//                        dlg.dismiss();
-//                    }
-//                });
-//                dlg.show();
-//            }
-//        });
 
 
 

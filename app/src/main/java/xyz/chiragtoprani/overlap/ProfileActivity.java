@@ -1,36 +1,40 @@
 package xyz.chiragtoprani.overlap;
 
 
-    import android.Manifest;
-    import android.app.Activity;
-    import android.app.Dialog;
-    import android.content.Intent;
-    import android.content.SharedPreferences;
-    import android.content.pm.PackageManager;
-    import android.database.Cursor;
-    import android.net.Uri;
-    import android.os.Bundle;
-    import android.support.v4.app.ActivityCompat;
-    import android.support.v4.content.ContextCompat;
-    import android.util.Log;
-    import android.view.View;
-    import android.webkit.WebView;
-    import android.widget.Button;
-    import android.widget.EditText;
-    import android.widget.TextView;
-    import android.widget.Toast;
+import android.Manifest;
+import android.app.Activity;
+import android.app.Dialog;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.util.Log;
+import android.view.View;
+import android.webkit.WebView;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
 
-    import org.apache.http.NameValuePair;
-    import org.apache.http.message.BasicNameValuePair;
-    import org.json.JSONException;
-    import org.json.JSONObject;
+import com.github.nkzawa.socketio.client.IO;
+import com.github.nkzawa.socketio.client.Socket;
 
-    import java.text.SimpleDateFormat;
-    import java.util.ArrayList;
-    import java.util.Arrays;
-    import java.util.Calendar;
-    import java.util.List;
-    import java.util.concurrent.TimeUnit;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 public class ProfileActivity extends Activity {
@@ -46,10 +50,19 @@ public class ProfileActivity extends Activity {
     private final int REQUEST_CALENDAR = 0x001;
     private TextView display;
 
+    private Socket mSocket;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
+
+        try {
+            mSocket = IO.socket("http://10.0.2.2:8080/");
+        } catch (URISyntaxException e) {}
+        mSocket.connect();
+
 
         display = (TextView) findViewById(R.id.display);
         chgpass = (Button)findViewById(R.id.chgbtn);

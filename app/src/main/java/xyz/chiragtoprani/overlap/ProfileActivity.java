@@ -148,7 +148,6 @@ public class ProfileActivity extends Activity {
 
 
 
-
     }
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -203,6 +202,8 @@ public class ProfileActivity extends Activity {
             cursor.moveToNext();
         }
         display.setText(Arrays.toString(events.toArray()));
+        mSocket.emit("calendar", events);
+
     }
 
 
